@@ -46,8 +46,10 @@ cd $WORKING_DIR/gen
 [ ! -f "kube-proxy.kubeconfig" ] && ../generate-kube-proxy-config.sh "$KUBERNETES_PUBLIC_ADDRESS" "$KUBERNETES_CLUSTER"
 [ ! -f "kube-scheduler.pem" ] && ../generate-kube-scheduler-certs.sh
 [ ! -f "kube-scheduler.kubeconfig" ] && ../generate-kube-scheduler-config.sh "$KUBERNETES_CLUSTER"
+[ ! -f "kube-scheduler.service" ] && ../generate-kube-scheduler-service.sh
+[ ! -f "kube-scheduler.yaml" ] && ../generate-kube-scheduler-service-config.sh
 [ ! -f "encryption-config.yaml" ] && ../generate-encryption-config.sh
-[ ! -f "kubernetes.pem" ] && ../generate-kubernetes-certs.sh
+[ ! -f "kubernetes.pem" ] && ../generate-kubernetes-certs.sh "$KUBERNETES_HOSTNAMES"
 for i in $(seq 1 "$WORKERS_COUNT"); do
   idx=$(($i - 1))
   WORKER_IP="WORKER_IP_$idx"

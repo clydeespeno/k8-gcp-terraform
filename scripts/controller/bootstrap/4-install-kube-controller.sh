@@ -12,3 +12,7 @@ wget --show-progress --https-only --timestamping \
 
 chmod +x kube-apiserver kube-controller-manager kube-scheduler kubectl
 sudo mv kube-apiserver kube-controller-manager kube-scheduler kubectl /usr/local/bin/
+
+sudo mv /config/kube-controller-manager.service /etc/systemd/system/kube-controller-manager.service
+sudo mv /config/kube-scheduler.service /etc/systemd/system/kube-scheduler.service
+sudo mv /config/kube-apiserver.service /etc/systemd/system/kube-apiserver.service
