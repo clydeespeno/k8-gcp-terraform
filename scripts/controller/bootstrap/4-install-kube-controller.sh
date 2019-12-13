@@ -1,8 +1,10 @@
 #!/bin/bash
 
+set -x
+
 KUBE_VERSION="1.17.0"
 
-wget -q --show-progress --https-only --timestamping \
+wget --show-progress --https-only --timestamping \
   "https://storage.googleapis.com/kubernetes-release/release/v$KUBE_VERSION/bin/linux/amd64/kube-apiserver" \
   "https://storage.googleapis.com/kubernetes-release/release/v$KUBE_VERSION/bin/linux/amd64/kube-controller-manager" \
   "https://storage.googleapis.com/kubernetes-release/release/v$KUBE_VERSION/bin/linux/amd64/kube-scheduler" \

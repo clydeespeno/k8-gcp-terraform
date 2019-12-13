@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 cat <<EOF | kubectl apply --kubeconfig /config/admin.kubeconfig -f -
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole

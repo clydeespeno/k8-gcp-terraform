@@ -15,3 +15,18 @@ variable "kube_cluster" {
   description = "the cluster name"
   default = "kubernetes"
 }
+
+variable "ssh_user" {
+  type = string
+  description = "ssh user to upload scripts"
+}
+
+variable "ssh_key_file" {
+  type = string
+  description = "ssh user's key file"
+}
+
+variable "gcloud_account" {
+  type = string
+  description = "user account for gcloud"
+}

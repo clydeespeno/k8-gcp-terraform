@@ -1,6 +1,5 @@
 #!/bin/bash
-
-sudo mkdir -p /etc/etcd /etc/kubernetes/config
+set -ex
 
 ./1-bootstrap-controller-etcd.sh
 ./2-start-etcd-service.sh

@@ -4,16 +4,21 @@ resource "google_compute_instance" "controller" {
   machine_type = "n1-standard-1"
   name = "k8-controller-${count.index}"
   tags = [
-    "controller"]
+    "controller"
+  ]
   boot_disk {
     initialize_params {
       image = local.boot_image
       size = 200
     }
   }
+
   network_interface {
     subnetwork = google_compute_subnetwork.subnet.self_link
     network_ip = local.controller_ips[count.index]
+    access_config {
+      network_tier = "STANDARD"
+    }
   }
 
   service_account {
@@ -28,25 +33,56 @@ resource "google_compute_instance" "controller" {
 
   provisioner "file" {
     source = "${path.root}/config/gen/controller"
-    destination = "/config"
+    destination = "./config"
+    connection {
+      type = "ssh"
+      user = var.ssh_user
+      private_key = file(var.ssh_key_file)
+      host = self.network_interface[0].access_config[0].nat_ip
+    }
   }
 
   provisioner "file" {
-    source = "${path.root}/config/scripts/controller/config"
-    destination = "/etc/kubernetes/config"
+    source = "${path.root}/config/gen/k8-controller-${count.index}"
+    destination = "./service-config"
+    connection {
+      type = "ssh"
+      user = var.ssh_user
+      private_key = file(var.ssh_key_file)
+      host = self.network_interface[0].access_config[0].nat_ip
+    }
   }
 
   provisioner "file" {
-    source = "${path.root}/config/scripts/controller/bootstrap"
-    destination = "/scripts/bootstrap"
+    source = "${path.root}/scripts/controller/config"
+    destination = "./controller-config"
+    connection {
+      type = "ssh"
+      user = var.ssh_user
+      private_key = file(var.ssh_key_file)
+      host = self.network_interface[0].access_config[0].nat_ip
+    }
+  }
+
+  provisioner "file" {
+    source = "${path.root}/scripts/controller/bootstrap"
+    destination = "./bootstrap"
+    connection {
+      type = "ssh"
+      user = var.ssh_user
+      private_key = file(var.ssh_key_file)
+      host = self.network_interface[0].access_config[0].nat_ip
+    }
   }
 
   provisioner "remote-exec" {
-    inline = [
-      "sudo chmod -R +x /scripts/bootstrap",
-      "cd /scripts/bootstrap",
-      "./run.sh"
-    ]
+    script = "${path.root}/scripts/controller/init.sh"
+    connection {
+      type = "ssh"
+      user = var.ssh_user
+      private_key = file(var.ssh_key_file)
+      host = self.network_interface[0].access_config[0].nat_ip
+    }
   }
 }
 
@@ -56,20 +92,28 @@ resource "google_compute_instance" "worker" {
   machine_type = "n1-standard-1"
   name = "k8-worker-${count.index}"
   tags = [
-    "worker"]
+    "worker"
+  ]
+
   boot_disk {
     initialize_params {
       image = local.boot_image
       size = 200
     }
   }
+
   metadata = {
     pod-cidr = local.pod_cidrs[count.index]
   }
+
   network_interface {
     subnetwork = google_compute_subnetwork.subnet.self_link
     network_ip = local.worker_ips[count.index]
+    access_config {
+      network_tier = "STANDARD"
+    }
   }
+
   service_account {
     scopes = [
       "compute-rw",
@@ -78,16 +122,5 @@ resource "google_compute_instance" "worker" {
       "service-control",
       "logging-write",
       "monitoring"]
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "sudo mkdir -p /etc/etcd /etc/kubernetes/config"
-    ]
-  }
-
-  provisioner "file" {
-    source = "${path.root}/config/gen/k8-worker-${count.index}"
-    destination = "/config"
   }
 }

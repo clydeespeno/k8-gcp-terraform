@@ -1,5 +1,5 @@
 provider "google" {
-  project = "kubernetes-261507"
-  region = "asia-southeast1"
-  zone = "asia-southeast1-a"
+  project = local.google_provider.project
+  region = local.google_provider.region
+  zone = local.google_provider.zone
 }

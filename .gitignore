@@ -4,3 +4,6 @@ terraform.tfstate.backup
 .terraform
 .idea
 config/gen
+runners/gen
+*.tfvars
+

@@ -8,3 +8,11 @@ locals {
   worker_ips = [for i in range(var.worker_count) : "10.240.0.2${i}"]
   pod_cidrs = [for i in range(var.worker_count) : "10.200.${i}.0/24"]
 }
+
+locals {
+  google_provider = {
+    project = "kubernetes-261507"
+    region = "asia-southeast1"
+    zone = "asia-southeast1-a"
+  }
+}

@@ -2,6 +2,10 @@ output "config" {
   value = data.external.config.result
 }
 
+output "runners" {
+  value = data.external.generate_init.result
+}
+
 output "query" {
   value = {
     workers = var.worker_count

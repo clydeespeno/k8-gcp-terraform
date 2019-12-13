@@ -34,7 +34,7 @@ resource "google_compute_firewall" "allow_external" {
 
   allow {
     protocol = "tcp"
-    ports = [22, 6443]
+    ports = [22, 80, 443, 6443]
   }
 
   allow {
@@ -42,6 +42,20 @@ resource "google_compute_firewall" "allow_external" {
   }
 
   source_ranges = ["0.0.0.0/0"]
+}
+
+resource "google_compute_firewall" "internet" {
+  name = "k8-internet-access"
+  network = google_compute_network.vpc.self_link
+
+  direction = "EGRESS"
+
+  allow {
+    protocol = "tcp"
+    ports = [80, 443]
+  }
+
+  destination_ranges = ["0.0.0.0/0"]
 }
 
 resource "google_compute_firewall" "allow_health_check" {
@@ -56,6 +70,7 @@ resource "google_compute_firewall" "allow_health_check" {
 resource "google_compute_address" "k8_public_ip" {
   name = "k8-public-ip"
   description = "Kubernetes public IP"
+  network_tier = "STANDARD"
 }
 
 resource "google_compute_http_health_check" "kubernetes" {
@@ -68,16 +83,12 @@ resource "google_compute_http_health_check" "kubernetes" {
 resource "google_compute_target_pool" "kubernetes" {
   name = "kubernetes-target-pool"
   health_checks = [google_compute_http_health_check.kubernetes.self_link]
-  instances = [
-    google_compute_instance.controller[0].self_link,
-    google_compute_instance.controller[1].self_link,
-    google_compute_instance.controller[2].self_link
-  ]
+  instances = [for i in google_compute_instance.controller : i.self_link]
 }
 
 resource "google_compute_forwarding_rule" "kubernetes" {
   name = "kubernetes-forwarding-rule"
   ip_address = google_compute_address.k8_public_ip.address
-  ports = [6443]
   target = google_compute_target_pool.kubernetes.self_link
+  network_tier = "STANDARD"
 }
