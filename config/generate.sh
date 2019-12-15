@@ -94,6 +94,7 @@ cp kube-scheduler*.pem controller/.
 cp kube-scheduler.kubeconfig controller/.
 cp encryption-config.yaml controller/.
 cp kubernetes*.pem controller/.
+cp kube*.service controller/.
 
 function workersIps() {
   resultIp='{}'
