@@ -92,3 +92,11 @@ resource "google_compute_forwarding_rule" "kubernetes" {
   target = google_compute_target_pool.kubernetes.self_link
   network_tier = "STANDARD"
 }
+
+resource "google_compute_route" "k8-route" {
+  count = var.worker_count
+  dest_range = google_compute_instance.worker[count.index].metadata.pod-cidr
+  next_hop_instance = google_compute_instance.worker[count.index].self_link
+  name = "k8-route-${count.index}"
+  network = google_compute_network.vpc.self_link
+}
