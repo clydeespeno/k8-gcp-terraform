@@ -16,6 +16,7 @@ KUBERNETES_CLUSTER=$(echo $query | jq -r '.[0].cluster')
 for i in $(seq 1 "$WORKERS_COUNT"); do
   idx=$(($i - 1))
   declare "WORKER_IP_$idx=$(echo $query | jq -r --arg idx $idx '.[0].workerips|split(",")|.[$idx|tonumber]')"
+  declare "POD_CIDR_$idx=$(echo $query | jq -r --arg idx $idx '.[0].pod_cidrs|split(",")|.[$idx|tonumber]')"
 done
 
 CONTROLLER_CLUSTER="\""
@@ -54,17 +55,29 @@ for i in $(seq 1 "$WORKERS_COUNT"); do
   idx=$(($i - 1))
   WORKER_IP="WORKER_IP_$idx"
   instance=k8-worker-$idx
+  POD_CIDR="POD_CIDR_$idx"
   if [ ! -f "k8-worker-${idx}.pem" ]; then
     ../generate-worker-certs.sh $instance ${!WORKER_IP}
   fi
   if [ ! -f "k8-worker-${idx}.kubeconfig" ]; then
     ../generate-worker-config.sh $instance "$KUBERNETES_PUBLIC_ADDRESS" "$KUBERNETES_CLUSTER"
   fi
+  if [ ! -f "$instance-10-bridge.conf" ]; then
+    ../generate-bridge-conf.sh $instance ${!POD_CIDR}
+  fi
+  if [ ! -f "$instance-kubelet-config.yaml" ]; then
+    ../generate-kubelet-config-yaml.sh $instance ${!POD_CIDR}
+  fi
+
   mkdir -p $instance
   cp ca.pem $instance/.
-  cp "$instance.pem" $instance/.
-  cp "$instance-key.pem" $instance/.
-  cp "$instance.kubeconfig" $instance/.
+  cp "$instance.pem" $instance/worker.pem
+  cp "$instance-key.pem" $instance/worker-key.pem
+  cp "$instance.kubeconfig" $instance/worker.kubeconfig
+  cp "$instance-10-bridge.conf" $instance/10-bridge.conf
+  cp "$instance-kubelet-config.yaml" $instance/kubelet-config.yaml
+  cp kube-proxy.kubeconfig $instance/.
+  cp ../worker/* $instance/.
 done
 
 for i in $(seq 1 "$CONTROLLERS_COUNT"); do
@@ -80,6 +93,18 @@ for i in $(seq 1 "$CONTROLLERS_COUNT"); do
   mkdir -p $instance
   cp "$instance-etcd.service" "$instance/etcd.service"
   cp "$instance-kube-apiserver.service" "$instance/kube-apiserver.service"
+  cp ca*.pem $instance/.
+  cp admin*.pem $instance/.
+  cp admin.kubeconfig $instance/.
+  cp service-account*.pem $instance/.
+  cp kube-controller-manager*.pem $instance/.
+  cp kube-controller-manager.kubeconfig $instance/.
+  cp kube-scheduler*.pem $instance/.
+  cp kube-scheduler.kubeconfig $instance/.
+  cp encryption-config.yaml $instance/.
+  cp kubernetes*.pem $instance/.
+  cp kube*.service $instance/.
+  cp ../controller/* $instance/.
 done
 
 mkdir -p controller

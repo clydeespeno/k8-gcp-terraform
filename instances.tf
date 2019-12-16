@@ -123,4 +123,46 @@ resource "google_compute_instance" "worker" {
       "logging-write",
       "monitoring"]
   }
+
+  provisioner "file" {
+    source = "${path.root}/config/gen/k8-worker-${count.index}"
+    destination = "./config"
+    connection {
+      type = "ssh"
+      user = var.ssh_user
+      private_key = file(var.ssh_key_file)
+      host = self.network_interface[0].access_config[0].nat_ip
+    }
+  }
+
+  provisioner "file" {
+    source = "${path.root}/scripts/worker/bootstrap"
+    destination = "./bootstrap"
+    connection {
+      type = "ssh"
+      user = var.ssh_user
+      private_key = file(var.ssh_key_file)
+      host = self.network_interface[0].access_config[0].nat_ip
+    }
+  }
+
+  provisioner "remote-exec" {
+    script = "${path.root}/scripts/init.sh"
+    connection {
+      type = "ssh"
+      user = var.ssh_user
+      private_key = file(var.ssh_key_file)
+      host = self.network_interface[0].access_config[0].nat_ip
+    }
+  }
+
+  provisioner "remote-exec" {
+    script = "${path.root}/scripts/run.sh"
+    connection {
+      type = "ssh"
+      user = var.ssh_user
+      private_key = file(var.ssh_key_file)
+      host = self.network_interface[0].access_config[0].nat_ip
+    }
+  }
 }

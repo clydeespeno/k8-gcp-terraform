@@ -8,6 +8,7 @@ data "external" "config" {
     kubernetes_hostnames = "${google_compute_address.k8_public_ip.address},${local.kubernetes_hostnames},${join(",", local.controller_ips)}"
     kubernetes_public_address = google_compute_address.k8_public_ip.address
     cluster = var.kube_cluster
+    pod_cidrs = join(",", local.pod_cidrs)
   }
 }
 
