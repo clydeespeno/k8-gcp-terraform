@@ -35,6 +35,8 @@ done
 CONTROLLER_CLUSTER=$(echo "$CONTROLLER_CLUSTER\"" | jq -r 'rtrimstr(",")')
 ETCD_CLUSTER=$(echo "$ETCD_CLUSTER\"" | jq -r 'rtrimstr(",")')
 
+mkdir -p $WORKING_DIR/gen
+
 cd $WORKING_DIR/gen
 
 [ ! -f "ca.pem" ] && ../generate-ca-certs.sh
