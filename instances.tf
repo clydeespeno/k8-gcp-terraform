@@ -32,30 +32,8 @@ resource "google_compute_instance" "controller" {
   }
 
   provisioner "file" {
-    source = "${path.root}/config/gen/controller"
-    destination = "./config"
-    connection {
-      type = "ssh"
-      user = var.ssh_user
-      private_key = file(var.ssh_key_file)
-      host = self.network_interface[0].access_config[0].nat_ip
-    }
-  }
-
-  provisioner "file" {
     source = "${path.root}/config/gen/k8-controller-${count.index}"
-    destination = "./service-config"
-    connection {
-      type = "ssh"
-      user = var.ssh_user
-      private_key = file(var.ssh_key_file)
-      host = self.network_interface[0].access_config[0].nat_ip
-    }
-  }
-
-  provisioner "file" {
-    source = "${path.root}/scripts/controller/config"
-    destination = "./controller-config"
+    destination = "./config"
     connection {
       type = "ssh"
       user = var.ssh_user
@@ -76,7 +54,17 @@ resource "google_compute_instance" "controller" {
   }
 
   provisioner "remote-exec" {
-    script = "${path.root}/scripts/controller/init.sh"
+    script = "${path.root}/scripts/init.sh"
+    connection {
+      type = "ssh"
+      user = var.ssh_user
+      private_key = file(var.ssh_key_file)
+      host = self.network_interface[0].access_config[0].nat_ip
+    }
+  }
+
+  provisioner "remote-exec" {
+    script = "${path.root}/scripts/run.sh"
     connection {
       type = "ssh"
       user = var.ssh_user
@@ -94,6 +82,8 @@ resource "google_compute_instance" "worker" {
   tags = [
     "worker"
   ]
+
+  depends_on = [google_compute_instance.controller]
 
   boot_disk {
     initialize_params {

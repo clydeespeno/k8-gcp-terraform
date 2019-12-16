@@ -4,12 +4,8 @@ set -ex
 
 query="$(jq -s '.')"
 
-CONTROLLER_COUNT=$(echo $query | jq '.[0].controller_count|tonumber')
-SSH_USER=$(echo $query | jq -r '.[0].ssh_user')
-GCLOUD_ACCOUNT=$(echo $query | jq -r '.[0].gcloud_account')
-PROJECT=$(echo $query | jq -r '.[0].project')
-ZONE=$(echo $query | jq -r '.[0].zone')
-SSH_KEY_FILE=$(echo $query | jq -r '.[0].ssh_key_file')
+KUBERNETES_PUBLIC_ADDRESS=$(echo $query | jq -r '.[0].kubernetes_public_address')
+KUBERNETES_CLUSTER=$(echo $query | jq -r '.[0].cluster')
 
 scriptsdir=$(dirname "$0")
 WORKING_DIR=$(realpath "${scriptsdir}")
@@ -19,52 +15,24 @@ CONFIG_GEN_DIR="${PROJECT_ROOT}/config/gen"
 mkdir -p ${WORKING_DIR}/gen
 rm -rf ${WORKING_DIR}/gen/*
 
-gen_script=${WORKING_DIR}/gen/init.sh
+gen_script=${WORKING_DIR}/gen/init-kubectl.sh
 
 cat >> $gen_script <<EOF
 #!/bin/bash
-set -ex
+kubectl config set-cluster ${KUBERNETES_CLUSTER} \\
+  --certificate-authority=${CONFIG_GEN_DIR}/ca.pem \\
+  --embed-certs=true \\
+  --server=https://${KUBERNETES_PUBLIC_ADDRESS}:6443
 
+kubectl config set-credentials admin \\
+  --client-certificate=${CONFIG_GEN_DIR}/admin.pem \\
+  --client-key=${CONFIG_GEN_DIR}/admin-key.pem
+
+kubectl config set-context ${KUBERNETES_CLUSTER} \\
+  --cluster=${KUBERNETES_CLUSTER} \\
+  --user=admin
+
+kubectl config use-context ${KUBERNETES_CLUSTER}
 EOF
-
-for i in $(seq 1 "$CONTROLLER_COUNT"); do
-  idx=$(($i - 1))
-  instance="k8-controller-$idx"
-  cat >> $gen_script <<EOF
-gcloud compute scp \\
-  $PROJECT_ROOT/scripts/controller/init.sh \\
-  $PROJECT_ROOT/scripts/controller/bootstrap/ \\
-  $PROJECT_ROOT/scripts/controller/config/ \\
-  $PROJECT_ROOT/config/gen/controller \\
-  $SSH_USER@${instance}:. \\
-  --account ${GCLOUD_ACCOUNT} \\
-  --project ${PROJECT} \\
-  --zone ${ZONE} \\
-  --ssh-key-file=${SSH_KEY_FILE} \\
-  --recurse
-
-EOF
-done
-
-for i in $(seq 1 "$CONTROLLER_COUNT"); do
-  idx=$(($i - 1))
-  instance="k8-controller-$idx"
-  cat >> $gen_script <<EOF
-echo 'set -ex
-sudo chmod +x init.sh
-sudo ./init.sh
-exit
-' | gcloud compute ssh \\
-  --account ${GCLOUD_ACCOUNT} \\
-  --project ${PROJECT} \\
-  --zone ${ZONE} \\
-  --ssh-key-file=${SSH_KEY_FILE} \\
-  ${SSH_USER}@${instance}
-
-EOF
-done
-
-
-chmod -R +x ${WORKING_DIR}/gen
 
 echo '{}' | jq --arg script $gen_script '.script=$script'
